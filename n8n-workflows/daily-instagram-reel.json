@@ -1,0 +1,59 @@
+{
+  "name": "ServiZephyr Daily Restaurant Reel",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule",
+      "name": "Daily 9 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/carousels/daily-publish",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  \"business_name\": \"ServiZephyr\",\n  \"niche\": \"restaurant management software for orders, billing, waiting, staff workflow, khata and analytics\",\n  \"target_audience\": \"restaurant and cafe owners in India\",\n  \"brand_tone\": \"deeply relatable Hinglish premium restaurant story\",\n  \"content_mode\": \"carousel\",\n  \"cta\": \"DM us the word RESTAURANT\",\n  \"trend_keywords\": [\"peak hour chaos\", \"restaurant billing\", \"customer waiting\", \"online orders\"],\n  \"publish_instagram\": true,\n  \"publish_facebook\": false\n}"
+      },
+      "id": "call-backend",
+      "name": "Generate + Publish Reel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 9 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate + Publish Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
