@@ -1,0 +1,54 @@
+name: Publish Daily Reels
+
+on:
+  schedule:
+    # GitHub cron runs in UTC.
+    # 18:30 UTC = 12:00 AM IST, 03:30 UTC = 09:00 AM IST, 10:30 UTC = 04:00 PM IST.
+    - cron: "30 18,3,10 * * *"
+  workflow_dispatch:
+
+jobs:
+  publish-reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      APP_NAME: FlowCore AI Automation MVP
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:///./flowcore_actions.sqlite3
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: openai/gpt-4o-mini
+      OPENROUTER_SITE_URL: https://github.com/ashwanibaghel/FlowCore
+      OPENROUTER_APP_NAME: FlowCore
+      STORAGE_PROVIDER: cloudinary
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      CLOUDINARY_FOLDER: flowcore/reels
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      META_GRAPH_VERSION: v25.0
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+      DRY_RUN_PUBLISH: "false"
+      DEFAULT_CONTENT_MODE: carousel
+      PRODUCT_NAME: ServiZephyr
+      BRAND_LOGO_PATH: assets/brand/logo.png
+      MUSIC_DIR: assets/music
+      ENABLE_BACKGROUND_MUSIC: "true"
+      BACKGROUND_MUSIC_VOLUME: "0.18"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate and publish reel
+        run: python scripts/publish_daily_reel.py
