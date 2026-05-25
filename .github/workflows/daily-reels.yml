@@ -3,10 +3,10 @@ name: Publish Daily Reels
 on:
   schedule:
     # GitHub cron runs in UTC.
-    # 18:30 UTC = 12:00 AM IST, 03:30 UTC = 09:00 AM IST, 10:30 UTC = 04:00 PM IST.
+    # 18:30 UTC = 12:00 AM IST, 03:30 UTC = 09:00 AM IST, 11:00 UTC = 04:30 PM IST.
     - cron: "30 18 * * *"
     - cron: "30 3 * * *"
-    - cron: "30 10 * * *"
+    - cron: "0 11 * * *"
   workflow_dispatch:
 
 jobs:
