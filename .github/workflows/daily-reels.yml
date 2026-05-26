@@ -20,7 +20,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       DATABASE_URL: sqlite:///./flowcore_actions.sqlite3
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      OPENROUTER_MODEL: openai/gpt-4o-mini
+      OPENROUTER_MODEL: google/gemini-2.5-flash-lite
       OPENROUTER_SITE_URL: https://github.com/ashwanibaghel/FlowCore
       OPENROUTER_APP_NAME: FlowCore
       STORAGE_PROVIDER: cloudinary

@@ -1,5 +1,7 @@
 import json
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -476,32 +478,36 @@ JSON STRUCTURE:
         }
 
     def _restaurant_carousel_fallback(self, cta: str) -> dict[str, Any]:
+        story = self._select_restaurant_carousel_story()
+        slides = [
+            {
+                "slide_number": index,
+                "role": role,
+                "headline": headline,
+                "body": body,
+                "visual_direction": visual,
+                "emotion": emotion,
+            }
+            for index, (role, headline, body, visual, emotion) in enumerate(story["slides"], start=1)
+        ]
         return {
             "topic": {
-                "reel_topic": "Peak Hour ka Darr",
-                "hook": "7:30 PM. Restaurant full. Aur system full confused.",
-                "audience_pain_point": "Restaurant owners lose control when dine-in, pickup, billing, waiting, and staff updates are scattered.",
+                "reel_topic": story["title"],
+                "hook": story["hook"],
+                "audience_pain_point": story["pain_point"],
                 "cta": cta,
-                "idea_summary": "A story carousel about peak-hour chaos turning into control with ServiZephyr Restaurant.",
+                "idea_summary": story["idea_summary"],
             },
             "script": {
-                "short_reel_script": "A 7-slide carousel story showing peak-hour restaurant chaos and the shift to ServiZephyr Restaurant.",
+                "short_reel_script": "A 7-slide carousel story showing restaurant chaos and the shift to ServiZephyr.",
                 "voiceover_script": "",
-                "subtitles": [
-                    "7:30 PM. Peak hour start.",
-                    "Table 4 ka order kitchen tak gaya hi nahi.",
-                    "Customer: bhai mera order kahan hai?",
-                    "Owner: dine-in, pickup, billing sab alag chal raha hai.",
-                    "Then the restaurant shifted to ServiZephyr.",
-                    "Orders. Billing. Tracking. Waiting. One system.",
-                    "Business, Customer & Control. All Yours.",
-                ],
+                "subtitles": [slide["headline"] for slide in slides],
                 "scenes": [],
             },
             "caption": {
                 "instagram_caption": (
-                    "Peak hour ka chaos har restaurant owner samajhta hai. "
-                    "ServiZephyr helps bring orders, billing, waiting, tracking, and staff workflow into one controlled system. "
+                    f"{story['caption']} "
+                    "ServiZephyr helps bring orders, billing, waiting, customers, staff workflow, and control into one system. "
                     "Visit https://www.servizephyr.com or DM us the word RESTAURANT."
                 ),
                 "hashtags": [
@@ -520,84 +526,393 @@ JSON STRUCTURE:
                 "engagement_prompt": "Aapke restaurant me peak hour ka sabse bada chaos kya hota hai?",
             },
             "meme": {
-                "top_text": "Peak hour",
-                "bottom_text": "Owner stress level: 100",
+                "top_text": story["title"],
+                "bottom_text": "Control chahiye, daily drama nahi",
                 "template_hint": "drake",
             },
             "carousel": {
-                "title": "Peak Hour ka Darr",
-                "slides": [
-                    {
-                        "slide_number": 1,
-                        "role": "hook",
-                        "headline": "Peak Hour ka Darr",
-                        "body": "7:30 PM. Restaurant full. Owner already alert mode me.",
-                        "visual_direction": "crowded restaurant evening rush",
-                        "emotion": "anticipation",
-                    },
-                    {
-                        "slide_number": 2,
-                        "role": "setup",
-                        "headline": "Table 4 ka order?",
-                        "body": "Waiter: kitchen tak gaya hoga. Kitchen: kaunsa order?",
-                        "visual_direction": "waiter confused near kitchen counter",
-                        "emotion": "confusion",
-                    },
-                    {
-                        "slide_number": 3,
-                        "role": "conflict",
-                        "headline": "Customer ka patience gaya",
-                        "body": "Bhai mera order 40 min se kahan hai?",
-                        "visual_direction": "customer waiting at table",
-                        "emotion": "frustration",
-                    },
-                    {
-                        "slide_number": 4,
-                        "role": "emotion",
-                        "headline": "Owner ka real stress",
-                        "body": "Dine-in alag. Pickup alag. Billing alag. Waiting list alag.",
-                        "visual_direction": "restaurant owner stressed at billing counter",
-                        "emotion": "stress",
-                    },
-                    {
-                        "slide_number": 5,
-                        "role": "solution",
-                        "headline": "Then they shifted",
-                        "body": "ServiZephyr brought the workflow into one place.",
-                        "visual_direction": "clean modern restaurant dashboard",
-                        "emotion": "relief",
-                    },
-                    {
-                        "slide_number": 6,
-                        "role": "benefit",
-                        "headline": "Orders. Billing. Waiting.",
-                        "body": "Tracking, staff roles, customers and control - all connected.",
-                        "visual_direction": "organized restaurant operation",
-                        "emotion": "control",
-                    },
-                    {
-                        "slide_number": 7,
-                        "role": "cta",
-                        "headline": "DM 'RESTAURANT' Now!",
-                        "body": "Visit https://www.servizephyr.com or message us to bring control into one place.",
-                        "visual_direction": "minimal brand end card no photo",
-                        "emotion": "confidence",
-                    },
-                ],
+                "title": story["title"],
+                "slides": slides,
             },
             "video_prompts": {
                 "style": "Premium restaurant story carousel, modern brand design, emotional but clean.",
-                "prompts": [
-                    "Crowded restaurant during dinner rush.",
-                    "Confused waiter near kitchen counter.",
-                    "Customer waiting for food at table.",
-                    "Restaurant owner stressed near billing counter.",
-                    "Clean restaurant management dashboard.",
-                    "Organized staff workflow in restaurant.",
-                    "Minimal ServiZephyr brand card.",
-                ],
+                "prompts": [slide["visual_direction"] for slide in slides],
             },
         }
+
+    def _select_restaurant_carousel_story(self) -> dict[str, Any]:
+        stories = self._restaurant_carousel_story_bank()
+        now = datetime.now(ZoneInfo("Asia/Kolkata"))
+        slot = 0
+        if 6 <= now.hour < 13:
+            slot = 1
+        elif now.hour >= 13:
+            slot = 2
+        index = ((now.toordinal() * 3) + slot) % len(stories)
+        return stories[index]
+
+    def _restaurant_carousel_story_bank(self) -> list[dict[str, Any]]:
+        cta_slide = (
+            "cta",
+            "DM 'RESTAURANT' Now!",
+            "Visit https://www.servizephyr.com or message us to bring control into one place.",
+            "minimal brand end card no photo",
+            "confidence",
+        )
+        return [
+            {
+                "title": "Peak Hour ka Darr",
+                "hook": "7:30 PM. Restaurant full. Aur system full confused.",
+                "pain_point": "Peak hour me scattered orders, billing, waiting, aur staff updates owner ka control tod dete hain.",
+                "idea_summary": "Peak-hour chaos turns into one controlled restaurant workflow.",
+                "caption": "Peak hour ka chaos har restaurant owner samajhta hai.",
+                "slides": [
+                    ("hook", "Peak Hour ka Darr", "7:30 PM. Restaurant full. Owner already alert mode me.", "crowded restaurant evening rush", "anticipation"),
+                    ("setup", "Table 4 ka order?", "Waiter: kitchen tak gaya hoga. Kitchen: kaunsa order?", "waiter confused near kitchen counter", "confusion"),
+                    ("conflict", "Customer ka patience gaya", "Bhai mera order 40 min se kahan hai?", "customer waiting at table", "frustration"),
+                    ("emotion", "Owner ka real stress", "Dine-in alag. Pickup alag. Billing alag. Waiting list alag.", "restaurant owner stressed at billing counter", "stress"),
+                    ("solution", "Then they shifted", "ServiZephyr brought the workflow into one place.", "manager using tablet in restaurant", "relief"),
+                    ("benefit", "Orders. Billing. Waiting.", "Tracking, staff roles, customers and control - all connected.", "restaurant pos terminal billing counter", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Bill Match Nahi Hua",
+                "hook": "Counter close hua. Cash mismatch start.",
+                "pain_point": "Manual billing aur scattered payments closing time par owner ko doubt me daal dete hain.",
+                "idea_summary": "Billing mismatch stress becomes cleaner billing control.",
+                "caption": "Closing time ka cash mismatch owner ka mood kharab kar deta hai.",
+                "slides": [
+                    ("hook", "Bill Match Nahi Hua", "Raat ko counter close. Cash aur bill total alag.", "restaurant cashier counting cash", "stress"),
+                    ("setup", "Staff bole: pata nahi", "Kis order ka payment pending hai, kisi ko clear nahi.", "stressed cashier restaurant bill", "confusion"),
+                    ("conflict", "Owner calculator pakde", "10 min ka closing kaam 45 min ka tension ban gaya.", "tired restaurant owner calculator", "frustration"),
+                    ("emotion", "Daily ka same scene", "Business chal raha hai, par control feel nahi ho raha.", "restaurant owner holding head", "stress"),
+                    ("solution", "ServiZephyr entry", "Billing, order status aur payment records ek flow me.", "restaurant billing software pos", "relief"),
+                    ("benefit", "Closing becomes clear", "Owner ko pata: kya paid, kya pending, kya delivered.", "pos terminal receipt restaurant", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Waiter Confusion Mode",
+                "hook": "Table ka order kisne liya?",
+                "pain_point": "Staff roles clear na ho to orders kitchen tak late ya wrong pahuchte hain.",
+                "idea_summary": "Waiter confusion becomes role-based order tracking.",
+                "caption": "Waiter confusion chhota issue lagta hai, par customer experience wahi se toot ta hai.",
+                "slides": [
+                    ("hook", "Waiter Confusion Mode", "Table 6 ka order kis waiter ne liya?", "busy restaurant waiter taking order", "confusion"),
+                    ("setup", "Kitchen wait kar rahi", "Chef ready hai, par order slip missing hai.", "restaurant kitchen chefs waiting", "confusion"),
+                    ("conflict", "Customer repeat kar raha", "Bhai order already diya tha na?", "customer talking to waiter restaurant", "frustration"),
+                    ("emotion", "Owner beech me phas gaya", "Staff blame game. Customer ka mood down.", "restaurant manager stressed staff", "stress"),
+                    ("solution", "One workflow helps", "ServiZephyr staff roles aur order tracking clear karta hai.", "manager tablet restaurant staff", "relief"),
+                    ("benefit", "Order ka owner clear", "Kisne liya, status kya hai, kitchen me kya chal raha - sab visible.", "restaurant order management tablet", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Waiting Line Drama",
+                "hook": "Table empty hai, par customer wait kar raha.",
+                "pain_point": "Manual waiting list me seating opportunities miss hoti hain.",
+                "idea_summary": "Waiting chaos becomes visible table control.",
+                "caption": "Restaurant me waiting line manage karna bhi real business control hai.",
+                "slides": [
+                    ("hook", "Waiting Line Drama", "Bahaar line lagi hai. Andar table 2 empty hai.", "people waiting outside restaurant", "stress"),
+                    ("setup", "Staff ko pata late", "Table clean ho gayi, par waiting list update nahi hui.", "restaurant staff cleaning table", "confusion"),
+                    ("conflict", "Customer chala gaya", "Sir, 25 min wait bola tha. Ab dusri jagah ja rahe hain.", "customer leaving restaurant", "frustration"),
+                    ("emotion", "Owner ko loss dikha", "Empty table ka matlab direct missed revenue.", "restaurant owner looking at empty tables", "stress"),
+                    ("solution", "Waiting gets tracked", "ServiZephyr waiting aur seating flow ko visible karta hai.", "restaurant host tablet seating", "relief"),
+                    ("benefit", "Seat faster. Serve better.", "Table, queue aur customer flow ek jagah control me.", "busy restaurant dining tables", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Pickup Order Missing",
+                "hook": "Customer pickup ke liye aa gaya.",
+                "pain_point": "Pickup orders manually track karne se kitchen aur counter sync nahi rahte.",
+                "idea_summary": "Pickup order confusion becomes live status control.",
+                "caption": "Pickup order ready nahi ho to customer ka trust instantly down hota hai.",
+                "slides": [
+                    ("hook", "Pickup Order Missing", "Customer counter par: order ready hai?", "restaurant takeaway counter customer", "stress"),
+                    ("setup", "Kitchen: kaunsa pickup?", "Counter par naam hai, kitchen board par nahi.", "restaurant kitchen takeaway orders", "confusion"),
+                    ("conflict", "Customer wait kar raha", "Bas 5 min bolke 20 min ho gaye.", "customer waiting takeaway restaurant", "frustration"),
+                    ("emotion", "Owner damage control", "Sorry bolna padta hai, par system same rehta hai.", "restaurant owner apologizing customer", "stress"),
+                    ("solution", "Status becomes live", "ServiZephyr pickup orders ko status ke sath track karta hai.", "restaurant order status tablet", "relief"),
+                    ("benefit", "Ready means ready", "Order accepted, preparing, ready - counter aur kitchen synced.", "takeaway food bags restaurant counter", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Online Order Rush",
+                "hook": "Phone ping, counter ring, kitchen swing.",
+                "pain_point": "Online, phone, and counter orders scattered hone par kitchen overload hoti hai.",
+                "idea_summary": "Order rush becomes one clear operations board.",
+                "caption": "Online order rush me owner ko speed ke sath control bhi chahiye.",
+                "slides": [
+                    ("hook", "Online Order Rush", "Ek saath online, phone aur dine-in orders aa gaye.", "busy restaurant kitchen order rush", "stress"),
+                    ("setup", "Kitchen overloaded", "Kaunsa order pehle? Kaunsa urgent? Sab mixed.", "chefs busy restaurant kitchen", "confusion"),
+                    ("conflict", "Delay ka chain reaction", "Ek order late, teen customers angry.", "restaurant staff rushing orders", "frustration"),
+                    ("emotion", "Owner ka pressure high", "Speed chahiye, par visibility zero.", "stressed restaurant manager kitchen", "stress"),
+                    ("solution", "Orders in one view", "ServiZephyr orders ko organized flow me laata hai.", "restaurant tablet order dashboard", "relief"),
+                    ("benefit", "Rush bhi manageable", "Kitchen, counter aur owner ek status dekhte hain.", "organized restaurant kitchen chefs", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Khata Ka Confusion",
+                "hook": "Kal de denge, sir.",
+                "pain_point": "Borrower/khata pending payments manual diary me lost ho jaate hain.",
+                "idea_summary": "Khata confusion becomes trackable borrower control.",
+                "caption": "Khata aur pending payments restaurant ke silent stress hote hain.",
+                "slides": [
+                    ("hook", "Khata Ka Confusion", "Regular customer: kal de denge, sir.", "small restaurant customer paying later", "confusion"),
+                    ("setup", "Diary me entry hai?", "Staff: shayad likha tha. Owner: kis page par?", "restaurant owner notebook bill", "confusion"),
+                    ("conflict", "Pending amount bhool gaya", "Chhote-chhote pending monthly bada number ban jate hain.", "restaurant bills notebook calculator", "frustration"),
+                    ("emotion", "Trust bhi, tracking bhi", "Owner ko relation bhi sambhalna hai, payment bhi.", "restaurant owner stressed notebook", "stress"),
+                    ("solution", "Digital khata helps", "ServiZephyr borrower records ko clear rakhne me help karta hai.", "restaurant tablet customer records", "relief"),
+                    ("benefit", "Pending visible rahe", "Customer, amount aur history ek jagah.", "business owner tablet records cafe", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Repeat Customer Lost",
+                "hook": "Regular customer ko bhi yaad nahi rakha.",
+                "pain_point": "Customer history clear na ho to repeat business personalize nahi hota.",
+                "idea_summary": "Customer memory becomes repeat customer insight.",
+                "caption": "Repeat customers restaurant ki real asset hote hain.",
+                "slides": [
+                    ("hook", "Repeat Customer Lost", "Customer har Sunday aata hai. Staff ko naam tak yaad nahi.", "restaurant regular customer table", "confusion"),
+                    ("setup", "Same order. Same table.", "Par system me koi history nahi.", "cafe customer ordering food", "confusion"),
+                    ("conflict", "Personal touch missing", "Customer ko feel hota hai: main bas ek bill hun.", "restaurant customer disappointed", "frustration"),
+                    ("emotion", "Owner ko pata hai value", "Loyal customer ko retain karna discount se zyada smart hai.", "restaurant owner talking customer", "stress"),
+                    ("solution", "Customer history clear", "ServiZephyr customer records aur insights ko organize karta hai.", "restaurant manager tablet customer", "relief"),
+                    ("benefit", "Repeat business stronger", "Top customers, history aur preferences owner ke control me.", "happy restaurant customer owner", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Offer Ka Overload",
+                "hook": "Coupon diya, tracking bhool gaye.",
+                "pain_point": "Offers/coupons manual hone par discount ka real impact track nahi hota.",
+                "idea_summary": "Offer chaos becomes campaign control.",
+                "caption": "Offer tabhi kaam karta hai jab owner ko uska impact dikhe.",
+                "slides": [
+                    ("hook", "Offer Ka Overload", "Weekend offer chala diya. Tracking kahan hai?", "restaurant discount sign counter", "confusion"),
+                    ("setup", "Staff alag rule bata raha", "Kisi ne 10%, kisi ne free item apply kar diya.", "restaurant cashier coupon bill", "confusion"),
+                    ("conflict", "Profit ka math missing", "Sale badhi ya sirf discount gaya?", "restaurant owner calculator bill", "frustration"),
+                    ("emotion", "Owner unsure", "Marketing karna hai, par blind discount nahi.", "cafe owner stressed laptop", "stress"),
+                    ("solution", "Campaign control", "ServiZephyr offers aur billing ko connected rakhta hai.", "restaurant pos coupon screen", "relief"),
+                    ("benefit", "Offer with clarity", "Rules, billing aur customer response visible.", "restaurant owner checking tablet", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Kitchen Delay Panic",
+                "hook": "Food ready hai ya nahi?",
+                "pain_point": "Kitchen status invisible ho to staff guesswork se customer handle karta hai.",
+                "idea_summary": "Kitchen delay panic becomes status visibility.",
+                "caption": "Kitchen status clear ho to customer handling half easy ho jati hai.",
+                "slides": [
+                    ("hook", "Kitchen Delay Panic", "Waiter baar-baar kitchen me jhaank raha hai.", "waiter looking into restaurant kitchen", "stress"),
+                    ("setup", "Chef busy hai", "Order list long hai, priority unclear hai.", "busy chef restaurant kitchen", "confusion"),
+                    ("conflict", "Customer update maang raha", "Sir, aur kitna time lagega?", "customer asking waiter restaurant", "frustration"),
+                    ("emotion", "Staff guess kar raha", "5 min bol diya. Actual me 15 min.", "stressed waiter restaurant", "stress"),
+                    ("solution", "Live status view", "ServiZephyr kitchen status ko workflow me laata hai.", "restaurant kitchen order display", "relief"),
+                    ("benefit", "Updates become honest", "Preparing, ready, served - team ko clear signal.", "organized kitchen restaurant chefs", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Staff Shift Confusion",
+                "hook": "Shift change, details gone.",
+                "pain_point": "Shift handover weak ho to pending orders and customer updates miss ho jaate hain.",
+                "idea_summary": "Shift change confusion becomes shared workflow continuity.",
+                "caption": "Restaurant me shift handover smooth nahi hua to chaos double ho jata hai.",
+                "slides": [
+                    ("hook", "Staff Shift Confusion", "Evening shift aayi. Pending orders ka context gaya.", "restaurant staff shift change", "confusion"),
+                    ("setup", "Table 8 waiting", "New waiter ko pata hi nahi customer ne kya bola tha.", "waiter confused restaurant table", "confusion"),
+                    ("conflict", "Customer repeat kar raha", "Maine pehle hi staff ko bola tha.", "angry customer restaurant waiter", "frustration"),
+                    ("emotion", "Owner ko intervene karna", "Har handover me owner ko referee banna padta hai.", "restaurant manager stressed staff meeting", "stress"),
+                    ("solution", "Shared workflow helps", "ServiZephyr roles, orders aur status ko connected rakhta hai.", "restaurant team tablet", "relief"),
+                    ("benefit", "Shift changes smoother", "New staff ko live context milta hai.", "restaurant staff organized counter", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Table Turnover Slow",
+                "hook": "Table khaali, revenue slow.",
+                "pain_point": "Slow table turnover peak hours me revenue leak karta hai.",
+                "idea_summary": "Table turnover becomes visible occupancy control.",
+                "caption": "Restaurant me table turnover speed directly business impact karti hai.",
+                "slides": [
+                    ("hook", "Table Turnover Slow", "Customer nikal gaya. Table status update nahi hua.", "empty restaurant table after meal", "confusion"),
+                    ("setup", "Waiting list stuck", "Bahaar customer wait kar raha, andar table idle.", "restaurant waiting customers", "stress"),
+                    ("conflict", "Revenue leak silently", "Ek table delay, multiple orders miss.", "restaurant owner looking at tables", "frustration"),
+                    ("emotion", "Owner notice late", "Busy hours me small delays big loss ban jate hain.", "stressed cafe owner dining area", "stress"),
+                    ("solution", "Seat occupancy visible", "ServiZephyr dine-in aur table status track karne me help karta hai.", "restaurant seating tablet", "relief"),
+                    ("benefit", "Turn tables smarter", "Occupied, cleaning, ready - flow clear.", "restaurant dining area staff", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Menu Item Sold Out",
+                "hook": "Customer ne order diya. Item khatam.",
+                "pain_point": "Menu availability sync na ho to wrong expectations create hoti hain.",
+                "idea_summary": "Sold-out confusion becomes menu control.",
+                "caption": "Item sold out update late ho to customer trust hurt hota hai.",
+                "slides": [
+                    ("hook", "Menu Item Sold Out", "Customer ne favourite item order kiya.", "restaurant menu customer ordering", "anticipation"),
+                    ("setup", "Kitchen se jawab aaya", "Sir, ye item khatam ho gaya.", "chef restaurant kitchen talking", "confusion"),
+                    ("conflict", "Customer disappointed", "Order lene se pehle batana tha na.", "disappointed restaurant customer", "frustration"),
+                    ("emotion", "Staff awkward", "Replacement suggest karna padta hai, mood already down.", "waiter apologizing restaurant", "stress"),
+                    ("solution", "Menu control matters", "ServiZephyr menu, orders aur availability ko organize karta hai.", "restaurant tablet menu", "relief"),
+                    ("benefit", "Less awkward moments", "Available items clear, staff confident.", "happy waiter restaurant tablet", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Printer Drama",
+                "hook": "Bill print nahi hua.",
+                "pain_point": "Billing/printer confusion peak hour counter ko slow kar deta hai.",
+                "idea_summary": "Counter printer drama becomes smoother billing workflow.",
+                "caption": "Billing counter slow hua to poora restaurant line me aa jata hai.",
+                "slides": [
+                    ("hook", "Printer Drama", "Customer payment kar chuka. Bill print nahi hua.", "restaurant bill printer counter", "stress"),
+                    ("setup", "Counter line badh gayi", "Ek bill issue, poori queue stuck.", "people waiting billing counter restaurant", "frustration"),
+                    ("conflict", "Staff panic mode", "Reprint? Manual bill? Duplicate entry?", "cashier stressed pos restaurant", "confusion"),
+                    ("emotion", "Owner ka patience test", "Small tech issue, big customer pressure.", "restaurant owner billing counter stressed", "stress"),
+                    ("solution", "Billing workflow cleaner", "ServiZephyr billing flow ko structured rakhta hai.", "pos receipt restaurant billing", "relief"),
+                    ("benefit", "Counter moves faster", "Bill, order aur payment details connected.", "restaurant cashier smiling pos", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Manager Not Updated",
+                "hook": "Owner bahar, chaos andar.",
+                "pain_point": "Owner ko live updates na milen to remote control impossible ho jata hai.",
+                "idea_summary": "Owner visibility improves even when not at the restaurant.",
+                "caption": "Restaurant owner har time counter par nahi ho sakta, par control chahiye.",
+                "slides": [
+                    ("hook", "Owner Bahar Hai", "Owner meeting me hai. Restaurant me rush start.", "restaurant owner phone outside cafe", "stress"),
+                    ("setup", "Updates late aa rahe", "Kya sale hua? Kitni waiting? Kaunsa issue?", "business owner checking phone stressed", "confusion"),
+                    ("conflict", "Decision delay", "Owner ko pata tab chalta hai jab problem badh chuki hoti hai.", "restaurant manager phone worried", "frustration"),
+                    ("emotion", "Remote control missing", "Business owner ko real-time confidence chahiye.", "restaurant owner stressed phone", "stress"),
+                    ("solution", "Visibility in one place", "ServiZephyr operations ko owner-friendly view me laata hai.", "restaurant dashboard tablet", "relief"),
+                    ("benefit", "Owner stays informed", "Orders, billing, customers aur staff workflow clearer.", "restaurant owner smiling tablet", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Customer Complaint Loop",
+                "hook": "Complaint aayi. Follow-up gaya.",
+                "pain_point": "Complaint follow-up miss hone par customer trust weak hota hai.",
+                "idea_summary": "Complaint chaos becomes trackable customer handling.",
+                "caption": "Complaint handle karna sirf sorry bolna nahi, process bhi hai.",
+                "slides": [
+                    ("hook", "Complaint Loop", "Customer ne bola: last order cold tha.", "restaurant customer complaint waiter", "stress"),
+                    ("setup", "Staff ne note kiya", "Par follow-up kahan track hua?", "waiter writing note restaurant", "confusion"),
+                    ("conflict", "Same customer wapas nahi aaya", "Issue solve nahi hua, relation weak ho gaya.", "empty restaurant table customer", "frustration"),
+                    ("emotion", "Owner ko regret", "Ek complaint ignore nahi, insight hoti hai.", "restaurant owner thinking counter", "stress"),
+                    ("solution", "Customer records help", "ServiZephyr customer history aur workflow ko organize karta hai.", "restaurant manager customer tablet", "relief"),
+                    ("benefit", "Better service memory", "Complaint, preference aur repeat visits visible.", "happy customer restaurant owner", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Delivery Area Confusion",
+                "hook": "Order aa gaya, area bahar.",
+                "pain_point": "Delivery range and charges clear na ho to staff-customer friction hota hai.",
+                "idea_summary": "Delivery area confusion becomes rule-based control.",
+                "caption": "Delivery rule clear nahi hua to order lene ke baad awkward scene hota hai.",
+                "slides": [
+                    ("hook", "Area Bahar Nikla", "Order accept hua. Address delivery range ke bahar.", "restaurant delivery bag counter", "confusion"),
+                    ("setup", "Staff customer ko call kare", "Sir, yahan delivery possible nahi hai.", "restaurant staff phone delivery", "stress"),
+                    ("conflict", "Customer angry", "Order lete time kyun nahi bataya?", "angry customer phone restaurant", "frustration"),
+                    ("emotion", "Brand image hit", "Small rule miss, big trust issue.", "restaurant owner worried phone", "stress"),
+                    ("solution", "Rules in system", "ServiZephyr delivery range, charges aur blocked areas organize karta hai.", "delivery map tablet restaurant", "relief"),
+                    ("benefit", "Less manual confusion", "Area, charge aur delivery flow clearer.", "restaurant delivery staff organized", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "GST Bill Pressure",
+                "hook": "Customer ne GST bill maanga.",
+                "pain_point": "Custom taxes and charges manual hone par billing pressure badhta hai.",
+                "idea_summary": "Tax/bill pressure becomes configurable billing control.",
+                "caption": "Professional billing restaurant ki credibility banati hai.",
+                "slides": [
+                    ("hook", "GST Bill Pressure", "Customer: GST bill mil jayega?", "restaurant customer asking bill", "stress"),
+                    ("setup", "Counter check kare", "Tax, charge, discount - sab manually verify.", "cashier checking restaurant bill", "confusion"),
+                    ("conflict", "Line wait kar rahi", "Ek custom bill, poora counter slow.", "restaurant billing queue", "frustration"),
+                    ("emotion", "Owner wants clean billing", "Professional experience billing se bhi dikhta hai.", "restaurant owner billing counter", "stress"),
+                    ("solution", "Smart billing flow", "ServiZephyr custom taxes, charges aur billing settings support karta hai.", "restaurant pos billing screen", "relief"),
+                    ("benefit", "Bills feel professional", "Customer ko clarity, owner ko control.", "receipt pos restaurant counter", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Multi-Branch Mess",
+                "hook": "Do branches. Do alag stories.",
+                "pain_point": "Multi-branch operations without central visibility owner ko blind spots dete hain.",
+                "idea_summary": "Multi-branch mess becomes centralized operational clarity.",
+                "caption": "Branch badhna achha hai, par control bhi saath badhna chahiye.",
+                "slides": [
+                    ("hook", "Multi-Branch Mess", "Branch A busy. Branch B slow. Owner confused.", "restaurant owner multiple cafe branches", "confusion"),
+                    ("setup", "Reports alag-alag", "Ek branch WhatsApp, ek branch notebook, ek branch calls.", "restaurant manager paperwork laptop", "confusion"),
+                    ("conflict", "Decision late hota hai", "Kahan staff chahiye? Kahan offer? Kahan issue?", "business owner stressed charts", "frustration"),
+                    ("emotion", "Growth feels heavy", "Branch badhi, par control scatter ho gaya.", "restaurant owner stressed laptop", "stress"),
+                    ("solution", "Central visibility", "ServiZephyr multi-branch management ko organize karne me help karta hai.", "restaurant analytics dashboard tablet", "relief"),
+                    ("benefit", "Growth with control", "Orders, billing, customers aur operations clearer across branches.", "restaurant owner confident tablet", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "WhatsApp Order Flood",
+                "hook": "Chat me order, kitchen me doubt.",
+                "pain_point": "WhatsApp orders manually forward karne se details miss ho sakti hain.",
+                "idea_summary": "Chat order flood becomes structured ordering workflow.",
+                "caption": "WhatsApp par order lena easy hai, manage karna tough ho sakta hai.",
+                "slides": [
+                    ("hook", "WhatsApp Order Flood", "Customer chat me order bhej raha. Staff busy hai.", "restaurant staff phone whatsapp order", "stress"),
+                    ("setup", "Details miss ho gayi", "Address, item, quantity - kuch na kuch reh gaya.", "waiter checking phone restaurant", "confusion"),
+                    ("conflict", "Kitchen wrong prep", "Order forward hua, par clear format me nahi.", "restaurant kitchen confused order", "frustration"),
+                    ("emotion", "Owner ko structure chahiye", "Chat orders ko bhi proper workflow chahiye.", "restaurant owner phone stressed", "stress"),
+                    ("solution", "Ordering flow structured", "ServiZephyr online and WhatsApp ordering ko organize karta hai.", "restaurant online order tablet", "relief"),
+                    ("benefit", "Less chat chaos", "Order details, status aur billing connected.", "restaurant staff tablet order", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Owner Firefighting",
+                "hook": "Owner sab kuch khud kar raha.",
+                "pain_point": "Owner dependency high ho to system scalable nahi hota.",
+                "idea_summary": "Owner firefighting becomes process-driven control.",
+                "caption": "Restaurant owner ka kaam har chhoti problem me phasna nahi, business grow karna hai.",
+                "slides": [
+                    ("hook", "Owner Firefighting", "Order issue? Owner. Bill issue? Owner. Customer issue? Owner.", "restaurant owner multitasking stressed", "stress"),
+                    ("setup", "Team wait karti hai", "Decision ke liye har baar owner ko call.", "restaurant staff calling owner", "confusion"),
+                    ("conflict", "Business owner stuck", "Growth planning ka time daily chaos kha jata hai.", "business owner tired restaurant", "frustration"),
+                    ("emotion", "Control missing hai", "Owner busy hai, par system mature nahi.", "restaurant owner holding head", "stress"),
+                    ("solution", "Process takes load", "ServiZephyr workflows ko structured aur visible banata hai.", "restaurant workflow tablet", "relief"),
+                    ("benefit", "Owner gets control back", "Team ka kaam clear. Owner ka view clear.", "restaurant owner confident cafe", "control"),
+                    cta_slide,
+                ],
+            },
+            {
+                "title": "Daily Report Missing",
+                "hook": "Din khatam. Report kahan?",
+                "pain_point": "Daily sales, items, customers aur staff insights missing ho to decisions guesswork ban jaate hain.",
+                "idea_summary": "Missing reports become analytics-backed decisions.",
+                "caption": "Restaurant ka daily report owner ke liye business health check hota hai.",
+                "slides": [
+                    ("hook", "Daily Report Missing", "Raat ko owner poochta: aaj kya sell hua?", "restaurant owner checking reports night", "confusion"),
+                    ("setup", "Staff guesses", "Paneer zyada gaya hoga. Maybe biryani bhi.", "restaurant staff discussing sales", "confusion"),
+                    ("conflict", "Decision guesswork", "Kal stock kya rakhna hai? Offer kis item par?", "restaurant owner inventory calculator", "frustration"),
+                    ("emotion", "Data chahiye", "Feeling se business nahi, clarity se grow hota hai.", "restaurant owner laptop stressed", "stress"),
+                    ("solution", "Analytics help", "ServiZephyr item, customer aur business insights organize karta hai.", "restaurant analytics dashboard", "relief"),
+                    ("benefit", "Tomorrow gets smarter", "Top items, customers aur patterns visible.", "restaurant owner smiling analytics tablet", "control"),
+                    cta_slide,
+                ],
+            },
+        ]
 
     def _restaurant_meme_fallback(self, cta: str) -> dict[str, Any]:
         return {

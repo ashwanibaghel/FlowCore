@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./flowcore.sqlite3"
 
     openrouter_api_key: str = ""
-    openrouter_model: str = "openai/gpt-4o-mini"
+    openrouter_model: str = "google/gemini-2.5-flash-lite"
     openrouter_site_url: str = "https://flowcore.ai"
     openrouter_app_name: str = "FlowCore"
 
