@@ -57,19 +57,32 @@ class ContentGenerationService:
         }
         if not is_carousel:
             json_body["response_format"] = {"type": "json_object"}
-        response = httpx.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.settings.openrouter_api_key}",
-                "HTTP-Referer": self.settings.openrouter_site_url,
-                "X-Title": self.settings.openrouter_app_name,
-            },
-            json=json_body,
-            timeout=90,
-        )
-        response.raise_for_status()
-        raw = response.json()["choices"][0]["message"]["content"]
-        parsed = json.loads(raw)
+        try:
+            response = httpx.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.settings.openrouter_api_key}",
+                    "HTTP-Referer": self.settings.openrouter_site_url,
+                    "X-Title": self.settings.openrouter_app_name,
+                },
+                json=json_body,
+                timeout=90,
+            )
+            response.raise_for_status()
+            raw = response.json()["choices"][0]["message"]["content"]
+            parsed = json.loads(raw)
+        except (httpx.HTTPError, KeyError, json.JSONDecodeError) as exc:
+            print(f"AI content generation unavailable; using fallback content. Reason: {exc}")
+            return self._sanitize(
+                self._normalize(
+                    self._fallback_content(business_name, niche, target_audience, cta, content_mode),
+                    business_name,
+                    niche,
+                    target_audience,
+                    cta,
+                    content_mode,
+                )
+            )
         if is_carousel and isinstance(parsed, list):
             parsed = self._carousel_array_to_content(parsed, cta)
         return self._sanitize(
